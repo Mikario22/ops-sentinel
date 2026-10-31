@@ -48,6 +48,26 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(analyze([event("2026-10-30T12:00:00+02:00", type="privileged_change",
                                         reason="CHG-123")]), [])
 
+    def test_risk_factors_appear_in_json(self):
+        import json
+        result = analyze([event("2026-10-31T02:30:00+02:00")])[0]
+        serialized = json.loads(json.dumps(result.to_dict()))
+        self.assertEqual(serialized["risk_score"], 90)
+        self.assertEqual(serialized["severity"], "critical")
+        self.assertEqual([f["code"] for f in serialized["risk_factors"]],
+                         ["RULE_BASE", "WEEKEND", "OVERNIGHT"])
+
+    def test_privileged_failure_burst_scores_higher(self):
+        times = [f"2026-10-30T10:{minute:02}:00+02:00" for minute in range(3)]
+        privileged = analyze([event(t, outcome="failed") for t in times])[0]
+        ordinary = analyze([event(t, outcome="failed", privileged=False) for t in times])[0]
+        self.assertEqual((privileged.risk_score, ordinary.risk_score), (75, 60))
+        self.assertEqual((privileged.severity, ordinary.severity), ("high", "medium"))
+
+    def test_weekend_privileged_change_escalates(self):
+        result = analyze([event("2026-10-31T12:00:00+02:00", type="privileged_change")])[0]
+        self.assertEqual((result.risk_score, result.severity), (95, "critical"))
+
     def test_naive_timestamps_rejected(self):
         data = "timestamp,account,event_type,source_ip,target_host,outcome,privileged\n2026-10-30T12:00:00,a,login,192.0.2.1,h,success,true\n"
         with tempfile.TemporaryDirectory() as temp:

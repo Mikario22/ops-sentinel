@@ -24,6 +24,7 @@ python -m pip install -e .
 python -m ops_sentinel analyze samples/synthetic_events.csv --output findings.json
 python -m ops_sentinel investigate samples/synthetic_events.csv --output investigations.json
 python -m ops_sentinel workflow samples/synthetic_events.csv --output workflow-summary.json
+python -m ops_sentinel evaluate samples/evaluation_cases.json --output evaluation-report.json
 python -m unittest discover -s tests -v
 ```
 
@@ -138,6 +139,45 @@ controls for any future side-effecting tools. The checkpoint and audit files
 are not one atomic transaction; interrupted writes may require manual recovery.
 
 
+## Evaluation and Benchmarking (Commit 5)
+
+Run the **offline, labeled synthetic** evaluation:
+
+```powershell
+python -m ops_sentinel evaluate samples/evaluation_cases.json --repeats 5 --recovery-trials 3 --output evaluation-report.json
+```
+
+The fixture has 13 scenarios and independent expected-rule labels, including
+business-as-usual activity, failure bursts, undocumented privileged changes
+and an **authorized after-hours login** deliberately labeled as non-actionable.
+The existing detector still flags that login; the evaluation records it as
+a **false positive under the benchmark policy** rather than hiding it.
+
+Metrics are computed at the **(scenario, rule) level**, not per individual log
+event: precision, recall, F1, accuracy, false-positive rate and TP/FP/FN/TN.
+For undefined denominators the JSON result is `null`, not a misleading 0%.
+There is also an exact scenario-label match rate.
+
+The investigation checks measure **structural safeguards** only: whether
+cited event records exist in the supplied fixture, whether traces use allowed
+read-only tools, and whether cases remain pending human approval. They do
+**not** measure LLM-generated narrative factuality, human analyst usefulness,
+real compromise detection, or externally verified business approvals.
+
+Latency reports measured median and nearest-rank p95 milliseconds for a full
+in-memory detection-plus-investigation run on the current machine. The recovery
+benchmark injects one **synthetic transient failure** per trial into the
+investigation step, then checks retry completion, audit consistency and that
+a resumed completed run does not execute tools again. These are local samples,
+not durability or throughput guarantees.
+
+**Privacy:** The default evaluation sends no requests to any model, network,
+or endpoint. It uses only fabricated identities, hosts and reserved test IPs.
+The sample metrics must **not** be presented as real-world security accuracy,
+LLM quality or production reliability. Independent, authorized real-world
+ground truth and broader stress tests would be required.
+
+
 ## Roadmap
 
 - [x] Parse synthetic event data and validate timezones
@@ -145,7 +185,7 @@ are not one atomic transaction; interrupted writes may require manual recovery.
 - [x] Unit tests and CI
 - [x] Explainable risk scoring with severity thresholds and contextual factors
 - [ ] Add threshold configuration and suppression policy
-- [ ] Add alert evaluation metrics and benchmarks
+- [x] Add synthetic alert evaluation metrics and offline benchmarks
 - [x] Add a read-only investigation agent with human approval gates
 - [x] Add optional opt-in LLM commentary with immutable approval controls
 - [x] Build a local read-only workflow engine with planning, retries, resume and audit

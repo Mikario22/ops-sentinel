@@ -1,0 +1,324 @@
+{
+  "dataset": "Ops Sentinel synthetic labeled scenarios v1",
+  "scenarios": [
+    {
+      "id": "privileged_evening",
+      "expected_rules": [
+        "AFTER_HOURS_PRIVILEGED"
+      ],
+      "events": [
+        {
+          "timestamp": "2026-10-30T19:20:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "privileged_business_hours",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T12:30:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "privileged_weekend",
+      "expected_rules": [
+        "AFTER_HOURS_PRIVILEGED"
+      ],
+      "events": [
+        {
+          "timestamp": "2026-10-31T12:00:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "unprivileged_evening",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T20:10:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "failed_login_burst",
+      "expected_rules": [
+        "FAILED_LOGIN_BURST"
+      ],
+      "events": [
+        {
+          "timestamp": "2026-10-30T11:00:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:01:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:02:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "two_failures_only",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T11:00:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:01:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "failures_distributed_by_ip",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T11:00:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.21",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:01:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.22",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:02:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.23",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "change_without_reason",
+      "expected_rules": [
+        "UNJUSTIFIED_PRIVILEGED_CHANGE"
+      ],
+      "events": [
+        {
+          "timestamp": "2026-10-30T13:00:00+02:00",
+          "event_type": "privileged_change",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "change_with_reason",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T13:00:00+02:00",
+          "event_type": "privileged_change",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": "CHG-SYNTH-100"
+        }
+      ]
+    },
+    {
+      "id": "two_distinct_detections",
+      "expected_rules": [
+        "AFTER_HOURS_PRIVILEGED",
+        "UNJUSTIFIED_PRIVILEGED_CHANGE"
+      ],
+      "events": [
+        {
+          "timestamp": "2026-10-30T13:00:00+02:00",
+          "event_type": "privileged_change",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T19:20:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "long_failure_window",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T11:00:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:11:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:22:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-user",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "failures_across_accounts",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T11:00:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "user-a",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:01:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "user-b",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        },
+        {
+          "timestamp": "2026-10-30T11:02:00+02:00",
+          "event_type": "login",
+          "outcome": "failed",
+          "privileged": false,
+          "source_ip": "192.0.2.11",
+          "account": "user-c",
+          "target_host": "synthetic-host",
+          "business_reason": ""
+        }
+      ]
+    },
+    {
+      "id": "approved_evening_maintenance_false_alert",
+      "expected_rules": [],
+      "events": [
+        {
+          "timestamp": "2026-10-30T19:30:00+02:00",
+          "event_type": "login",
+          "outcome": "success",
+          "privileged": true,
+          "source_ip": "192.0.2.11",
+          "account": "synthetic-admin",
+          "target_host": "synthetic-host",
+          "business_reason": "CHG-SYNTH-201"
+        }
+      ]
+    }
+  ]
+}

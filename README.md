@@ -1,6 +1,6 @@
 # Ops Sentinel
 
-An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, explainable context-based risk scoring, evidence generation, automated tests, and GitHub CI.
+An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, explainable context-based risk scoring, evidence generation, a read-only investigation agent, automated tests, and GitHub CI.
 
 > **Important:** The included dataset is synthetic. Never commit company logs, credentials, employee details, endpoint identifiers, or customer data.
 
@@ -10,9 +10,9 @@ Security teams receive many authentication and administrative events. Finding **
 
 ## Architecture
 
-`CSV events -> strict input validation -> deterministic correlation/detection -> evidence-rich JSON findings -> human review`
+`CSV events -> validation -> detection and risk scoring -> read-only investigation tools -> JSON cases -> human review`
 
-The engine is **not an LLM agent** and does **not take remediation actions**. A future, permission-controlled investigation agent can consume findings, request approval, and propose actions. Its policy and evidence should be testable separately from the model.
+The investigation agent uses deterministic, read-only tools. An optional OpenAI Responses API narrator can add model-generated commentary **only after explicit opt-in**. Neither mode can approve or execute remediation. Model-generated text is clearly separated from evidence and approval status.
 
 ## Quick start
 
@@ -22,6 +22,7 @@ python -m venv .venv
 # macOS/Linux: source .venv/bin/activate
 python -m pip install -e .
 python -m ops_sentinel analyze samples/synthetic_events.csv --output findings.json
+python -m ops_sentinel investigate samples/synthetic_events.csv --output investigations.json
 python -m unittest discover -s tests -v
 ```
 
@@ -57,6 +58,45 @@ remediation actions. A burst emits one finding at first threshold crossing, not
 an updated finding for every subsequent failure. This is a batch prototype,
 not a full production SIEM.
 
+## Read-only Investigation Agent (Commit 3)
+
+Use `python -m ops_sentinel investigate samples/synthetic_events.csv --output investigations.json`.
+For each finding, the agent produces a stable case ID, risk and severity,
+bounded evidence, read-only tool traces, correlation observations and a
+**pending human-approval request** for any potentially disruptive response.
+There is no remediation executor. Offline operation needs no API key.
+
+The fixed tool allowlist contains:
+
+- `account_timeline`: time-bounded history of the affected account.
+- `source_timeline`: events with the same source IP.
+- `recorded_change_references`: nearby events with stated business reasons.
+  **A stated change reference is not verified approval.**
+
+Events are deduplicated by stable IDs, results are capped per tool (default
+50), and truncated evidence is marked. Investigation context defaults to 60
+minutes before and 15 minutes after the finding. Adjust with
+`--lookback-minutes`, `--lookahead-minutes`, and `--max-evidence`. The
+reports are triage aids, not proof of compromise. All proposed actions are
+**pending_human_approval**; the project cannot approve or execute them.
+
+### Optional AI commentary — explicit opt-in only
+
+Using this option sends the selected event evidence to the OpenAI API and may
+incur API charges. **Do not send real company data or personal data without
+explicit organizational authorization and a data-sharing review.** The
+default offline mode never calls an external model; CI uses no real API calls.
+
+```powershell
+$env:OPENAI_API_KEY = '<your-own-key>'
+$env:OPS_SENTINEL_OPENAI_MODEL = '<available-model-in-your-API-project>'
+python -m ops_sentinel investigate samples/synthetic_events.csv --output investigations.json --narrator openai --allow-external-data-transfer
+```
+
+Never commit keys or secret values. The model can append untrusted commentary
+only; it cannot change evidence, risk scores, approval status or tool calls.
+
+
 ## Roadmap
 
 - [x] Parse synthetic event data and validate timezones
@@ -65,7 +105,8 @@ not a full production SIEM.
 - [x] Explainable risk scoring with severity thresholds and contextual factors
 - [ ] Add threshold configuration and suppression policy
 - [ ] Add alert evaluation metrics and benchmarks
-- [ ] Add a read-only investigation agent with human approval gates
+- [x] Add a read-only investigation agent with human approval gates
+- [x] Add optional opt-in LLM commentary with immutable approval controls
 - [ ] Add a dashboard using synthetic data
 
 Use meaningful commits tied to working code, not artificial daily commits.

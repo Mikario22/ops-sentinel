@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from .risk import RiskFactor, assess_risk
+
 LOCAL_ZONE = ZoneInfo("Africa/Johannesburg")
 
 
@@ -35,6 +37,7 @@ class Finding:
     risk_score: int
     evidence: str
     recommended_action: str
+    risk_factors: tuple[RiskFactor, ...] = ()
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -86,20 +89,28 @@ def analyze(events: list[Event], *, zone: ZoneInfo = LOCAL_ZONE, failure_thresho
     for event in sorted(events, key=lambda e: e.timestamp):
         local = event.timestamp.astimezone(zone)
         stamp = event.timestamp.isoformat()
+        weekend = local.weekday() >= 5
+        overnight = local.hour < 6
         if (event.event_type == "login" and event.outcome == "success" and event.privileged
                 and (local.weekday() >= 5 or local.hour < 7 or local.hour >= 18)):
+            risk = assess_risk("AFTER_HOURS_PRIVILEGED", privileged=True,
+                               weekend=weekend, overnight=overnight)
             findings.append(Finding(
-                "AFTER_HOURS_PRIVILEGED", "high", event.account, stamp, event.source_ip,
-                event.target_host, 75,
+                "AFTER_HOURS_PRIVILEGED", risk.severity, event.account, stamp, event.source_ip,
+                event.target_host, risk.score,
                 f"Privileged login at {local:%Y-%m-%d %H:%M %Z} outside Mon-Fri 07:00-18:00",
                 "Confirm authorized activity and correlate with approved change or ticket.",
+                risk.factors,
             ))
         if event.event_type == "privileged_change" and event.outcome == "success" and not event.business_reason:
+            risk = assess_risk("UNJUSTIFIED_PRIVILEGED_CHANGE", privileged=event.privileged,
+                               weekend=weekend, overnight=overnight)
             findings.append(Finding(
-                "UNJUSTIFIED_PRIVILEGED_CHANGE", "high", event.account, stamp,
-                event.source_ip, event.target_host, 85,
+                "UNJUSTIFIED_PRIVILEGED_CHANGE", risk.severity, event.account, stamp,
+                event.source_ip, event.target_host, risk.score,
                 "Successful privileged change has no recorded business reason",
                 "Request change reference and verify owner approval before closing.",
+                risk.factors,
             ))
         if event.event_type == "login" and event.outcome == "failed":
             key = (event.account.casefold(), event.source_ip)
@@ -110,11 +121,15 @@ def analyze(events: list[Event], *, zone: ZoneInfo = LOCAL_ZONE, failure_thresho
             if len(recent) < failure_threshold:
                 tripped[key] = False
             if len(recent) >= failure_threshold and not tripped[key]:
+                risk = assess_risk("FAILED_LOGIN_BURST", privileged=event.privileged,
+                                   weekend=weekend, overnight=overnight,
+                                   failed_attempts=len(recent))
                 findings.append(Finding(
-                    "FAILED_LOGIN_BURST", "medium", event.account, stamp,
-                    event.source_ip, event.target_host, 60,
+                    "FAILED_LOGIN_BURST", risk.severity, event.account, stamp,
+                    event.source_ip, event.target_host, risk.score,
                     f"{len(recent)} failures for same account/source within {failure_window_minutes} minutes",
                     "Review source legitimacy, account lockout activity, and related successful logins.",
+                    risk.factors,
                 ))
                 tripped[key] = True
     return findings

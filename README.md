@@ -1,6 +1,6 @@
 # Ops Sentinel
 
-An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, evidence generation, automated tests, and GitHub CI.
+An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, explainable context-based risk scoring, evidence generation, automated tests, and GitHub CI.
 
 > **Important:** The included dataset is synthetic. Never commit company logs, credentials, employee details, endpoint identifiers, or customer data.
 
@@ -29,28 +29,43 @@ Python 3.11+ required. All core logic is stdlib-only. The timestamps in the CSV 
 
 ## Detection rules
 
-| Rule | Conditions | Score |
+| Rule | Conditions | Baseline score |
 |---|---|---|
 | `AFTER_HOURS_PRIVILEGED` | Successful privileged login outside weekday business hours | 75 |
-| `FAILED_LOGIN_BURST` | 3+ failed logins by same account and source within 10 min | 60 |
+| `FAILED_LOGIN_BURST` | 3+ failed logins by same account and source within 10 min | 60 (for 3 attempts) |
 | `UNJUSTIFIED_PRIVILEGED_CHANGE` | Successful privileged change with missing business reason | 85 |
 
-Scores are demonstrative fixed rule weights, **not statistically calibrated risks**. Alerts are for analyst review only. A burst produces one finding while its window remains above threshold. This is a batch prototype, not a full production SIEM.
+## Explainable risk scoring
+
+Each finding includes `risk_score` (0–100), `severity`, and a machine-readable
+`risk_factors` list with factor codes, point values, and explanations. The rule
+baseline and contextual adjustments are deterministic:
+
+- **Failed-login bursts:** 45 base points plus 5 per failed attempt (maximum 25), and 15 more if the account is privileged.
+- **After-hours privileged login:** 75 base points.
+- **Unjustified privileged change:** 85 base points.
+- **Weekend context:** +10 points (Saturday or Sunday in `Africa/Johannesburg`).
+- **Overnight context:** +5 points (00:00–05:59 in `Africa/Johannesburg`).
+- **Severity:** low 0–39, medium 40–69, high 70–89, critical 90–100. Scores are capped at 100; the factor values may sum above the cap.
+
+For example, an after-hours privileged login on Saturday at 02:30 local time
+scores **90 / critical** (75 rule baseline + 10 weekend + 5 overnight).
+The scores are illustrative *triage priorities*, **not calibrated probabilities
+of compromise**. They must be evaluated against real-world ground truth before
+production use. Alerts require analyst review; the system takes no automated
+remediation actions. A burst emits one finding at first threshold crossing, not
+an updated finding for every subsequent failure. This is a batch prototype,
+not a full production SIEM.
 
 ## Roadmap
 
 - [x] Parse synthetic event data and validate timezones
 - [x] Implement auditable correlation algorithms
 - [x] Unit tests and CI
+- [x] Explainable risk scoring with severity thresholds and contextual factors
 - [ ] Add threshold configuration and suppression policy
 - [ ] Add alert evaluation metrics and benchmarks
 - [ ] Add a read-only investigation agent with human approval gates
 - [ ] Add a dashboard using synthetic data
-
-## Suggested first commits
-
-1. `feat: add explainable security detection engine`
-2. `test: cover timezone boundaries and login correlation`
-3. `ci: validate analyzer across Python versions`
 
 Use meaningful commits tied to working code, not artificial daily commits.

@@ -12,3 +12,4 @@ findings.json
 investigations.json
 .ops-sentinel-state/
 workflow-summary.json
+evaluation-report.json

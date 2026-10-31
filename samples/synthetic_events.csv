@@ -1,0 +1,7 @@
+timestamp,account,event_type,source_ip,target_host,outcome,privileged,business_reason
+2026-10-30T07:00:00+02:00,test-admin,login,192.0.2.10,test-server,success,true,CHG-100
+2026-10-30T19:20:00+02:00,test-admin,login,192.0.2.10,test-server,success,true,
+2026-10-30T11:00:00+02:00,test-user,login,192.0.2.20,test-server,failed,false,
+2026-10-30T11:01:00+02:00,test-user,login,192.0.2.20,test-server,failed,false,
+2026-10-30T11:02:00+02:00,test-user,login,192.0.2.20,test-server,failed,false,
+2026-10-30T13:00:00+02:00,test-admin,privileged_change,192.0.2.10,test-server,success,true,

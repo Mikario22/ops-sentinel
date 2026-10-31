@@ -1,6 +1,6 @@
 # Ops Sentinel
 
-An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, explainable context-based risk scoring, evidence generation, a read-only investigation agent, automated tests, and GitHub CI.
+An **explainable security-event correlation engine** built as a personal engineering portfolio project. It demonstrates event parsing, timezone-aware algorithms, rule-based detection, explainable context-based risk scoring, evidence generation, a read-only investigation agent, resumable workflow orchestration, automated tests, and GitHub CI.
 
 > **Important:** The included dataset is synthetic. Never commit company logs, credentials, employee details, endpoint identifiers, or customer data.
 
@@ -23,6 +23,7 @@ python -m venv .venv
 python -m pip install -e .
 python -m ops_sentinel analyze samples/synthetic_events.csv --output findings.json
 python -m ops_sentinel investigate samples/synthetic_events.csv --output investigations.json
+python -m ops_sentinel workflow samples/synthetic_events.csv --output workflow-summary.json
 python -m unittest discover -s tests -v
 ```
 
@@ -97,6 +98,46 @@ Never commit keys or secret values. The model can append untrusted commentary
 only; it cannot change evidence, risk scores, approval status or tool calls.
 
 
+## Workflow Orchestrator (Commit 4)
+
+A resumable **read-only** workflow now coordinates three explicit steps:
+
+```text
+detect_events ──> investigate_findings ──> summarize_cases
+       \______________________________________^
+```
+
+The planner validates step names, tool allowlisting, dependency ordering and
+maximum retry attempts before any work starts. A retry happens **only** for
+`RetryableStepError`, with bounded attempts and configurable backoff. Ordinary
+errors stop execution without retrying or leaking exception messages into the
+audit. There is **no** command executor, external connector, account modification,
+or automated approval function.
+
+Run the complete pipeline offline with the synthetic example:
+
+```powershell
+python -m ops_sentinel workflow samples/synthetic_events.csv --state-dir .ops-sentinel-state --output workflow-summary.json
+```
+
+The default run ID derives from a digest of the input events. Running the same
+command again automatically **resumes** completed work without re-executing the
+tools. To run a separate case, use `--run-id demo-2`. The local state folder
+contains `<run-id>.state.json` with checkpointed investigation data and
+`<run-id>.audit.jsonl` with a SHA-256 hash-linked event trail. Hash links help
+detect accidental edits; they are **not** cryptographic signatures and should
+not be treated as proof against a malicious administrator.
+
+The summary includes investigation counts, severity levels and the number of
+**pending human approval requests**. The workflow does not fulfill, approve, or
+execute those requests. State files can contain event details: use only
+synthetic or explicitly approved data, keep the directory access-controlled,
+and never commit state files. For production use, add multi-process locking,
+transactional storage, authenticated reviewers, audit export and idempotency
+controls for any future side-effecting tools. The checkpoint and audit files
+are not one atomic transaction; interrupted writes may require manual recovery.
+
+
 ## Roadmap
 
 - [x] Parse synthetic event data and validate timezones
@@ -107,6 +148,7 @@ only; it cannot change evidence, risk scores, approval status or tool calls.
 - [ ] Add alert evaluation metrics and benchmarks
 - [x] Add a read-only investigation agent with human approval gates
 - [x] Add optional opt-in LLM commentary with immutable approval controls
+- [x] Build a local read-only workflow engine with planning, retries, resume and audit
 - [ ] Add a dashboard using synthetic data
 
 Use meaningful commits tied to working code, not artificial daily commits.

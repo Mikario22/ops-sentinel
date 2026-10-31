@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .engine import analyze, parse_events
+from .evaluation import evaluate, load_scenarios
 from .investigation import InvestigationAgent
 from .narration import OpenAIResponsesNarrator
 from .workflow import LocalCheckpoint, WorkflowOrchestrator
@@ -11,7 +12,7 @@ from .workflow import LocalCheckpoint, WorkflowOrchestrator
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Explainable security event analyzer")
-    parser.add_argument("command", choices=["analyze", "investigate", "workflow"])
+    parser.add_argument("command", choices=["analyze", "investigate", "workflow", "evaluate"])
     parser.add_argument("csv", type=Path, help="CSV with timestamp, account and event fields")
     parser.add_argument("--output", "-o", type=Path, help="Optional JSON output path")
     parser.add_argument("--lookback-minutes", type=int, default=60, help="Investigation lookback (0–1440)")
@@ -26,11 +27,25 @@ def main() -> None:
     parser.add_argument("--run-id", help="Optional safe workflow ID for resume (workflow only)")
     parser.add_argument("--retry-delay", type=float, default=0,
                         help="Seconds between eligible workflow retries (0–10)")
+    parser.add_argument("--repeats", type=int, default=5, help="Evaluation latency repetitions (1–100)")
+    parser.add_argument("--recovery-trials", type=int, default=3, help="Synthetic recovery trials (1–20)")
     args = parser.parse_args()
     if args.narrator == "openai" and args.command != "investigate":
         parser.error("--narrator openai requires the investigate command")
     if args.command == "workflow" and args.allow_external_data_transfer:
         parser.error("workflow does not support external data transfer")
+    if args.command == "evaluate":
+        if args.allow_external_data_transfer:
+            parser.error("evaluate does not support external data transfer")
+        payload = evaluate(load_scenarios(args.csv), repeats=args.repeats,
+                           recovery_trials=args.recovery_trials)
+        output = json.dumps(payload, indent=2)
+        if args.output:
+            args.output.write_text(output + "\n", encoding="utf-8")
+            print(f"Wrote evaluation report for {payload['scenario_count']} synthetic cases to {args.output}")
+        else:
+            print(output)
+        return
     events = parse_events(args.csv)
     if args.command == "workflow":
         runner = WorkflowOrchestrator(args.state_dir, retry_delay_seconds=args.retry_delay)
